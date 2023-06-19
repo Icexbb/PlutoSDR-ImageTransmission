@@ -238,6 +238,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_7.setObjectName(u"verticalLayout_7")
         self.SpinReceiveFrameCount = QSpinBox(self.groupBox_3)
         self.SpinReceiveFrameCount.setObjectName(u"SpinReceiveFrameCount")
+        self.SpinReceiveFrameCount.setMaximum(99999)
 
         self.verticalLayout_7.addWidget(self.SpinReceiveFrameCount)
 

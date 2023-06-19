@@ -323,7 +323,11 @@
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <item>
-               <widget class="QSpinBox" name="SpinReceiveFrameCount"/>
+               <widget class="QSpinBox" name="SpinReceiveFrameCount">
+                <property name="maximum">
+                 <number>99999</number>
+                </property>
+               </widget>
               </item>
              </layout>
             </widget>

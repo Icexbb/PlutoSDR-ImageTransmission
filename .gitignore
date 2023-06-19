@@ -4,5 +4,7 @@ __pycache__
 *.pyc
 *.png
 *.jpg
+!asset/*.jpg
+!asset/*.png
 
 venv
