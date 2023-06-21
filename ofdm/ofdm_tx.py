@@ -8,6 +8,7 @@
 from __future__ import division
 from __future__ import print_function
 
+import socket
 import sys
 import threading
 from multiprocessing import Manager
@@ -16,8 +17,8 @@ import numpy as np
 
 sys.path.append('..')
 
-from lib.ofdm.ofdm_utils import OfdmConfig
-from lib.ofdm.pluto_interface import pluto_transmitter
+from ofdm.ofdm_utils import OfdmConfig
+from ofdm.pluto_interface import pluto_transmitter
 
 
 class OfdmTx(object):
@@ -46,16 +47,16 @@ class OfdmTx(object):
         if self.tx_type == "pluto":
             tx_ipaddr, tx_freq, bandwidth, tx_gain = tx_args
             sdr_tx = pluto_transmitter(tx_ipaddr, tx_freq, bandwidth, tx_gain, verbose=True).pluto
-            self.tx_sample_queue_watcher_thread_pluto = tx_sample_queue_watcher_thread_pluto(sdr_tx,
-                                                                                             self.tx_queue,
-                                                                                             self.tx_queue_size,
-                                                                                             verbose=verbose)
+            self.tx_sample_queue_watcher_thread = tx_sample_queue_watcher_thread(sdr_tx,
+                                                                                 self.tx_queue,
+                                                                                 self.tx_queue_size,
+                                                                                 verbose=verbose)
         elif self.tx_type == "socket":
             tx_ipaddr, tx_port = tx_args
-            self.tx_sample_queue_watcher_thread_socket = tx_sample_queue_watcher_thread_socket(tx_ipaddr, tx_port,
-                                                                                               self.tx_queue,
-                                                                                               self.tx_queue_size,
-                                                                                               verbose=verbose)
+            self.tx_packet_queue_watcher_thread = tx_packet_queue_watcher_thread(tx_ipaddr, tx_port,
+                                                                                 self.tx_queue,
+                                                                                 self.tx_queue_size,
+                                                                                 verbose=verbose)
         else:
             raise ValueError("Invalid tx type.")
 
@@ -69,19 +70,15 @@ class OfdmTx(object):
     def put(self, bin_message):
         """ interface for upper layers """
         if self.tx_type == "pluto":
-            self.tx_queue.put(bin_message)
-
+            self.tx_queue.put(self.process(bin_message) * (2 ** 14))
         elif self.tx_type == "socket":
             # put packet for socket
-            # TODO: You should modulate the frames into baseband samples
-            pass
+            self.tx_queue.put(bin_message)
 
     def process(self, bin_message, is_with_preamble=True):
-        """Calculate the time-domain samples to be transmitted
-        :param bin_message:         (numpy.array) binary message array
-        :param is_with_preamble:    (boolean) whether to use the preamble
-        :return: (numpy.array) baseband time-domain samples to be transmitted
+        """ Calculate the time-domain samples to be transmitted
         """
+        # TODO
         encoded = bin_message
         # zero-padding the encoded to fill a multiple of OFDM symbols
         encoded = np.concatenate((encoded, np.zeros(
@@ -122,20 +119,53 @@ class OfdmTx(object):
         return tx_packet
 
 
-class tx_sample_queue_watcher_thread_pluto(threading.Thread):
+class tx_sample_queue_watcher_thread(threading.Thread):
     """ TX Sample Queue Monitor
     """
 
+    # TODO
     def __init__(self, sdr_tx, tx_queue, tx_queue_size, verbose=False):
         threading.Thread.__init__(self)
         self.setDaemon(True)
+        self.sdr_tx = sdr_tx
         self.ntx = 0
         self.tx_queue = tx_queue
         self.tx_queue_size = tx_queue_size
         self.verbose = verbose
-        self.sdr_tx = sdr_tx
-        # self.sdr_tx.tx_cyclic_buffer = False
+        self.keep_running = True
+        self.start()
 
+    def done(self):
+        self.keep_running = False
+
+    def run(self):
+        while self.keep_running:
+            try:
+                if self.tx_queue.qsize() > self.tx_queue_size:
+                    self.tx_queue.get()
+                if not self.tx_queue.empty():
+                    self.sdr_tx.tx(self.tx_queue.get())
+                    if self.verbose:
+                        self.ntx += 1
+                        print("[PlutoTx] TX: ntx={}".format(self.ntx))
+            except:
+                break
+
+
+class tx_packet_queue_watcher_thread(threading.Thread):
+    """ TX UDP Packet Queue Monitor
+    """
+
+    def __init__(self, tx_ipaddr, tx_port, tx_queue, tx_queue_size, verbose=False):
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.tx_ipaddr = tx_ipaddr
+        self.tx_port = tx_port
+        self.ntx = 0
+        self.tx_queue = tx_queue
+        self.tx_queue_size = tx_queue_size
+        self.verbose = verbose
         self.keep_running = True
         self.start()
 
@@ -149,20 +179,11 @@ class tx_sample_queue_watcher_thread_pluto(threading.Thread):
                     self.tx_queue.get()
                 if not self.tx_queue.empty():
                     # bit->decimal->byte
-                    # data_bytes = bytes(np.packbits(self.tx_queue.get()))
-                    data_bytes = self.tx_queue.get()
-                    self.sdr_tx.tx(data_bytes)
+                    data_bytes = bytes(np.packbits(self.tx_queue.get()))
+                    self.sock.sendto(data_bytes, (self.tx_ipaddr, self.tx_port))
                     if self.verbose:
                         self.ntx += 1
                         print("[SocketTx] TX: ntx={}".format(self.ntx))
-            except Exception as e:
-                print('stop')
-                raise e
+            except:
+                self.sock.close()
                 break
-
-
-class tx_sample_queue_watcher_thread_socket(threading.Thread):
-    """ TX UDP Packet Queue Monitor
-    """
-    # TODO:You should get the complex samples and convert them into bytes
-    pass

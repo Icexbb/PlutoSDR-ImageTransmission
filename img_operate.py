@@ -4,7 +4,6 @@
 
 
 import math
-
 import numpy as np
 from PIL import Image
 
@@ -64,10 +63,10 @@ def save_image(pkt, save_path):
 
 if __name__ == '__main__':
     # PHY example, assumed that we can support OFDM PHY with 100 symbols
-    pkt_size = 100 * 48 - 16 - 32
+    pkt_size = 20 * 48 - 16 - 32
 
     # tx
-    tx_pkt = list(read_image(r'xmu3.jpg'))
+    tx_pkt = list(read_image(r'../PLUTO大作业_李崟山_李铁鑫_杨博组/project-release 23.05.28/xmu3.jpg'))
     width, height, greyLevel = extract_image_info(tx_pkt)
     num_frame = math.ceil(len(tx_pkt) / pkt_size)
 
@@ -76,4 +75,4 @@ if __name__ == '__main__':
     for n in range(num_frame):
         rx_pkt[n * pkt_size: (n + 1) * pkt_size] = tx_pkt[n * pkt_size: (n + 1) * pkt_size]
     print(num_frame)
-    # save_image(rx_pkt, r'images/recv.jpg')
+    save_image(rx_pkt, r'images/recv.jpg')

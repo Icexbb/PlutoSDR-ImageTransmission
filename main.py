@@ -5,7 +5,7 @@ from PIL import Image
 from PySide6 import QtWidgets, QtGui, QtCore
 
 from UI import Ui_MainWindow
-from lib.test_read_save_img import read_image
+from img_operate import read_image
 from threads import TransmitThread, ReceiveThread
 
 

@@ -7,15 +7,14 @@
 
 import sys
 import threading
-import time
 
 import numpy as np
 
 sys.path.append('..')
 
-from lib.ofdm.ofdm_tx import OfdmTx
-from lib.ofdm.ofdm_rx import OfdmRx
-from lib.llc.llc_utils import calc_crc32, check_crc32, simu_pkt_loss_delay, dec2bin, bin2dec
+from ofdm.ofdm_tx import OfdmTx
+from ofdm.ofdm_rx import OfdmRx
+from llc.llc_utils import calc_crc32, check_crc32, simu_pkt_loss_delay, dec2bin, bin2dec
 
 
 class NodeBLLC(threading.Thread):
@@ -45,21 +44,18 @@ class NodeBLLC(threading.Thread):
     def done(self):
         self.keep_running = False
 
-    def run(self):
-        while self.keep_running:
-            self.ack(phy_type="pluto", arq_mode="stop-and-wait-ARQ")
+    # def run(self):
+    #     while self.keep_running:
+    #         self.ack(phy_type="pluto",arq_mode="stop-and-wait-ARQ")
 
     def recv(self, pkt_size, num_frame, phy_type="pluto", is_dbl_link=True, arq_mode="null-ARQ"):
         rx_pkt = [0] * num_frame * pkt_size
-        if is_dbl_link:
-            self.start()
         while self.keep_running:
             frame = self.ofdm_rx.get()
             if frame is None:
                 # print("frame none")
                 continue
             # np.save("jietiao",frame)
-            # print(max(frame),min(frame))
             if phy_type == "socket":
                 # packet loss and delay emulator
                 is_not_dropped = simu_pkt_loss_delay()
@@ -83,13 +79,14 @@ class NodeBLLC(threading.Thread):
                 # TODO: 实现stop-and-wait-ARQ protocol
                 # - 提取header处理协议流程
                 # - 提取并处理frame的数据;
+                # np.save('jietiao.npy',frame)
                 frame = frame.flatten()
                 if check_crc32(frame):
                     num_frame = 33
                     self.nrx = bin2dec(np.array2string(frame[0:16]).translate({ord(i): None for i in '[] '}))
                     # frame_len = bin2dec(np.array2string(frame[32:64]).translate({ord(i):None for i in '[] '}))
-                    frame = frame[16:16 + pkt_size]
-                    rx_pkt[self.nrx * pkt_size: (self.nrx + 1) * pkt_size] = frame
+                    pyload = frame[16:16 + pkt_size]
+                    rx_pkt[self.nrx * pkt_size: (self.nrx + 1) * pkt_size] = pyload
                     self.nrxok += 1
                     print("[NodeB] LLCRx: pkt=ok, nrxok={}, nrx={}".format(self.nrxok, self.nrx))
                     self.nrx += 1
@@ -101,6 +98,9 @@ class NodeBLLC(threading.Thread):
                     # np.save('rx_pkt.npy', rx_pkt)
                     # save_image(rx_pkt, r'recv.jpg')
                     return rx_pkt
+                if is_dbl_link:
+                    self.ack(phy_type, arq_mode)
+                # np.save('frame.npy',frame)
 
     def ack(self, phy_type="pluto", arq_mode="null-ARQ"):
         if phy_type == "socket":
@@ -130,8 +130,5 @@ class NodeBLLC(threading.Thread):
             frame = np.concatenate((frame, crc))
             # np.save('ack.npy',frame)
             # add crc32 for error detection, which is actually done by LLC layer
-            frame = self.ofdm_tx.process(frame)
-            frame = frame * (2 ** 14)
             self.ofdm_tx.put(frame)
             print("[NodeB] LLCTx: ntx={}".format(self.ntx))
-            time.sleep(0.1)

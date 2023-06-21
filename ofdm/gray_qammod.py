@@ -9,7 +9,7 @@ from builtins import object
 import numpy as np
 
 # from sympy.combinatorics.graycode import GrayCode
-from lib.ofdm.gray_code import GrayCode
+from ofdm.gray_code import GrayCode
 
 
 class GrayQamMod(object):

@@ -13,9 +13,9 @@ import numpy as np
 
 sys.path.append('..')
 
-from lib.ofdm.ofdm_tx import OfdmTx
-from lib.ofdm.ofdm_rx import OfdmRx
-from lib.llc.llc_utils import calc_crc32, check_crc32, dec2bin, bin2dec
+from ofdm.ofdm_tx import OfdmTx
+from ofdm.ofdm_rx import OfdmRx
+from llc.llc_utils import calc_crc32, check_crc32, dec2bin, bin2dec
 
 
 class NodeALLC(threading.Thread):
@@ -57,7 +57,7 @@ class NodeALLC(threading.Thread):
         while self.keep_running:
             self.recv(arq_mode="stop-and-wait-ARQ")
 
-    def send(self, tx_pkt, pkt_size, num_frame, is_dbl_link=False, arq_mode="null-ARQ", pause=0.1):
+    def send(self, tx_pkt, pkt_size, is_dbl_link=False, arq_mode="null-ARQ", pause=0.1):
         if arq_mode == "null-ARQ":
             if is_dbl_link:
                 # start thread to receive ACK
@@ -69,7 +69,6 @@ class NodeALLC(threading.Thread):
                 crc = calc_crc32(frame)
                 frame = np.concatenate((frame, crc))
                 self.ofdm_tx.put(frame)
-
                 self.ntx += 1
                 print("[NodeA] LLCTx: ntx={}".format(self.ntx))
                 time.sleep(pause)
@@ -81,17 +80,15 @@ class NodeALLC(threading.Thread):
                 # start thread to receive ACK
                 self.start()
             while self.keep_running:
-                frame = tx_pkt[self.ntx * pkt_size: (self.ntx + 1) * pkt_size]
+                pyload = tx_pkt[self.ntx * pkt_size: (self.ntx + 1) * pkt_size]
                 # add crc32 for error detection, which is actually done by LLC layer
                 # frame_len=dec2bin(len(frame))
                 frame_num = dec2bin(self.ntx, 16)
                 # frame = np.concatenate((frame_len,frame))
-                frame = np.concatenate((frame_num, frame))
+                frame = np.concatenate((frame_num, pyload))
                 crc = calc_crc32(frame)
                 frame = np.concatenate((frame, crc))
                 # np.save("frame.npy", frame)
-                frame = self.ofdm_tx.process(frame)
-                frame = frame * (2 ** 14)
                 self.ofdm_tx.put(frame)
                 print("[NodeA] LLCTx: ntx={}".format(self.ntx))
                 time.sleep(pause)

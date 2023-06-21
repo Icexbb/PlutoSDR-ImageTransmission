@@ -134,7 +134,7 @@ class pluto_receiver(pluto_interface):
                 self._gain = self.set_gain(gain)
                 return mode
             except Exception:
-                sys.stderr.write(("\nInvalid gain control mode!\n"))
+                sys.stderr.write("\nInvalid gain control mode!\n")
                 sys.exit(1)
 
     def add_options(parser):

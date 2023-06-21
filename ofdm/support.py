@@ -24,7 +24,7 @@ def findindex(m, windowsize, model, sigma):
                 mid.append(c[len(c) // 2])
                 left.append(c[0])
             c = []
-    if (len(c) > 0):
+    if len(c) > 0:
         mid.append(c[len(c) // 2])
         left.append(c[0])
     if model == 0:
@@ -37,26 +37,20 @@ def findindex(m, windowsize, model, sigma):
 
 
 def detect_preamble_cross_correlation(preamble, signal):
-    # 调用函数correlate
-    # a=numpy.correlate(preamble, signal, mode='valid')
-    # index=signal.shape[0]-preamble.shape[0]-np.where(a==np.max(a))[0][0]
-    # #return signal[index:signal.shape[0]]
-    # return index
-    #
-    a = np.zeros((signal.shape[0], 1))
-    p = np.zeros((signal.shape[0], 1))
-    for n in range(signal.shape[0] - preamble.shape[0]):
-        a[n] = numpy.absolute(np.dot(preamble.conj(), signal[n:n + preamble.shape[0]]))
-        p[n] = np.sum(numpy.absolute(preamble.conj()) ** 2) * np.sum(
-            numpy.absolute(signal[n:n + preamble.shape[0]]) ** 2)
-    # 归一化
-    m = a[:signal.shape[0] - preamble.shape[0]] / np.sqrt(p[:signal.shape[0] - preamble.shape[0]])
-    # pyplot.plot(m)
-    # pyplot.show()
-    index = np.where(m > 0.71)[0]
-    print(max(m))
-    if index.size > 0:
-        return index[0]
+    len1 = len(preamble)
+    len2 = len(signal)
+    pn1 = sum(preamble * preamble.conj())
+    pn2 = np.convolve(abs(signal) ** 2, np.ones(len1))[len1 - 1:len2]
+    c = np.abs(np.correlate(signal, preamble))
+    p = np.sqrt(np.real(pn1 * pn2))
+    m = c / p
+    max_v = np.real(np.max(m))
+    # 输出可视化结果
+    # plt.plot(range(len(m)), m, 'b')
+    # plt.title("cross correlation")
+    # plt.show()
+    if max_v > 0.7:
+        return np.argmax(m)
     else:
         return None
 
@@ -86,7 +80,7 @@ def detect_preamble_auto_correlation(signal, short_preamble_len):
 
 def detect_preamble_by_energy(signal):
     # L=20
-    c = np.zeros((signal.shape[0], 1))
+    np.zeros((signal.shape[0], 1))
     # for k in range(signal.shape[0]-1):
     #     c[k]=numpy.absolute(np.dot(signal[k:k+L],signal[k:k+L].conj()))
     #     c[k]=np.sum(numpy.absolute(signal[k:k+L])**2)
@@ -122,10 +116,10 @@ def cfo_estimation(rx_samples_lts):
 
 def detfcount(rx_samples_data, h_tilde, sym_num, pilot_index, data_index):
     demod = np.zeros((48 * sym_num, 1), dtype=np.uint8)
-    detf = np.zeros((1, 4), dtype=complex)
+    np.zeros((1, 4), dtype=complex)
     # x=range(-21,22,14)
     for symi in range(sym_num):
-        rx_data_samples_time = rx_samples_data[(symi) * 80 + 16: (symi + 1) * 80 - 1]
+        rx_data_samples_time = rx_samples_data[symi * 80 + 16: (symi + 1) * 80 - 1]
         rx_data_samples_freq = np.fft.fft(rx_data_samples_time, 64).reshape((-1, 1)) / h_tilde
         detf = np.unwrap(np.angle(rx_data_samples_freq[pilot_index]).T, discont=np.pi / 2, period=np.pi).T
         ff = np.polyfit(pilot_index, detf, 1).T  # fit a line to the data.  y=ax+b.  y=detf[k]
@@ -139,16 +133,16 @@ def detfcount(rx_samples_data, h_tilde, sym_num, pilot_index, data_index):
             dis0 = abs(-1 - rx_data_samples_freq[data_index[subi]])
             dis1 = abs(1 - rx_data_samples_freq[data_index[subi]])
             if dis0 > dis1:
-                demod[subi + (symi) * len(data_index)] = 1
+                demod[subi + symi * len(data_index)] = 1
             else:
-                demod[subi + (symi) * len(data_index)] = 0
+                demod[subi + symi * len(data_index)] = 0
     return demod, phase
 
 
 def bpsk_demodulation(rx_samples_data, h_tilde, sym_num, data_index):
     demod = np.zeros((48 * sym_num, 1), dtype=complex)
     for symi in range(sym_num):
-        rx_data_samples_time = rx_samples_data[(symi) * 80 + 16: (symi + 1) * 80 - 1]
+        rx_data_samples_time = rx_samples_data[symi * 80 + 16: (symi + 1) * 80 - 1]
         # 信道均衡
         rx_data_samples_freq = np.fft.fft(rx_data_samples_time, 64).reshape((-1, 1)) / h_tilde
         pyplot.scatter(rx_data_samples_freq.real, rx_data_samples_freq.imag)
@@ -157,18 +151,18 @@ def bpsk_demodulation(rx_samples_data, h_tilde, sym_num, data_index):
             dis0 = abs(-1 - rx_data_samples_freq[data_index[subi]])
             dis1 = abs(1 - rx_data_samples_freq[data_index[subi]])
             if dis0 > dis1:
-                demod[subi + (symi) * len(data_index)] = 1
+                demod[subi + symi * len(data_index)] = 1
             else:
-                demod[subi + (symi) * len(data_index)] = 0
+                demod[subi + symi * len(data_index)] = 0
     return demod
 
 
 def qpsk_demodulation(rx_samples_data, h_tilde, sym_num, pilot_index, data_index):
     demod = np.zeros((48 * 2 * sym_num, 1), dtype=complex)
-    detf = np.zeros((1, 4), dtype=complex)
+    np.zeros((1, 4), dtype=complex)
     # x=range(-21,22,14)
     for symi in range(sym_num):
-        rx_data_samples_time = rx_samples_data[(symi) * 80 + 16: (symi + 1) * 80 - 1]
+        rx_data_samples_time = rx_samples_data[symi * 80 + 16: (symi + 1) * 80 - 1]
         rx_data_samples_freq = np.fft.fft(rx_data_samples_time, 64).reshape((-1, 1)) / h_tilde
         detf = np.unwrap(np.angle(rx_data_samples_freq[pilot_index]).T, discont=np.pi / 2, period=np.pi).T
         ff = np.polyfit(pilot_index, detf, 1).T  # fit a line to the data.  y=ax+b.  y=detf[k]
@@ -186,17 +180,17 @@ def qpsk_demodulation(rx_samples_data, h_tilde, sym_num, pilot_index, data_index
             dis = [dis00, dis01, dis11, dis10]
             mindis = min(dis)
             if mindis == dis00:
-                demod[(subi + (symi) * len(data_index)) * 2] = 1
-                demod[(subi + (symi) * len(data_index)) * 2 + 1] = 1
+                demod[(subi + symi * len(data_index)) * 2] = 1
+                demod[(subi + symi * len(data_index)) * 2 + 1] = 1
             elif mindis == dis01:
-                demod[(subi + (symi) * len(data_index)) * 2] = 0
-                demod[(subi + (symi) * len(data_index)) * 2 + 1] = 1
+                demod[(subi + symi * len(data_index)) * 2] = 0
+                demod[(subi + symi * len(data_index)) * 2 + 1] = 1
             elif mindis == dis11:
-                demod[(subi + (symi) * len(data_index)) * 2] = 0
-                demod[(subi + (symi) * len(data_index)) * 2 + 1] = 0
+                demod[(subi + symi * len(data_index)) * 2] = 0
+                demod[(subi + symi * len(data_index)) * 2 + 1] = 0
             elif mindis == dis10:
-                demod[(subi + (symi) * len(data_index)) * 2] = 1
-                demod[(subi + (symi) * len(data_index)) * 2 + 1] = 0
+                demod[(subi + symi * len(data_index)) * 2] = 1
+                demod[(subi + symi * len(data_index)) * 2 + 1] = 0
     return demod
 
 

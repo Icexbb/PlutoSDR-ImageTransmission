@@ -3,8 +3,8 @@
 # @Time    : 2021/12/25 9:57 AM
 
 
-from lib.llc.llc_nodeA import NodeALLC
-from lib.llc.llc_nodeB import NodeBLLC
+from llc.llc_nodeA import NodeALLC
+from llc.llc_nodeB import NodeBLLC
 
 __author__ = ""
 __email__ = ""

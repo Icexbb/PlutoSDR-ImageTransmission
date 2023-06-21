@@ -3,7 +3,6 @@
 # compatibility of Python 2/3
 from __future__ import division
 from __future__ import print_function
-
 from builtins import object
 
 
@@ -39,7 +38,7 @@ class GrayCode(object):
         return self._grayCode.__iter__()
 
     def __generate(self):
-        li = [0 for i in range(self._nbits)]
+        li = [0 for _ in range(self._nbits)]
         self._grayCode.append(_list_to_string(li))
 
         for term in range(2, (1 << self._nbits) + 1):
@@ -60,7 +59,7 @@ class GrayCodeIterator(object):
         self._nbits = nbits
 
     def __iter__(self):
-        li = [0 for i in range(self._nbits)]
+        li = [0 for _ in range(self._nbits)]
         yield _list_to_string(li)
 
         for term in range(2, (1 << self._nbits) + 1):

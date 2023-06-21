@@ -12,7 +12,7 @@ from builtins import object
 
 import numpy as np
 
-from lib.ofdm.gray_qammod import GrayQamMod
+from ofdm.gray_qammod import GrayQamMod
 
 
 class OfdmConfig(object):
@@ -80,15 +80,6 @@ class OfdmConfig(object):
     def _generate_freq_ref_signal(n, pilot_pattern, pilot_num=None,
                                   training_signal_freq=None, training_sc_index=None, pilot_sc_index=None):
         assert n > 0
-        # print(pilot_pattern)
-        # print(pilot_num)
-        # print(training_signal_freq)
-        # print(training_sc_index)
-        # print(pilot_sc_index)
-        # assert (pilot_pattern != 'custom' and pilot_num) or \
-        #        (training_signal_freq is not None and training_sc_index is not None and pilot_sc_index is not None)
-        # assert not ((pilot_pattern != 'custom' and pilot_num) and
-        #             (training_signal_freq is not None and training_sc_index is not None and pilot_sc_index is not None))
 
         if pilot_pattern != 'custom':
             index = np.random.randint(low=0, high=2, size=n)
@@ -108,10 +99,6 @@ class OfdmConfig(object):
             ofdm_pilot = OfdmCustomPilot(training_signal_freq, training_sc_index, pilot_sc_index)
         else:
             raise Exception('invalid pilot pattern {}'.format(pilot_pattern))
-
-        # print('training_signal_freq: {}'.format(training_signal_freq))
-        # print('training_sc_index: {}'.format(training_sc_index))
-        # print('ofdm_pilot: {}'.format(ofdm_pilot._pilot_sc_index))
 
         return training_signal_freq, training_sc_index, ofdm_pilot
 

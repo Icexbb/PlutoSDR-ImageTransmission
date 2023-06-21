@@ -7,4 +7,6 @@ __pycache__
 !asset/*.jpg
 !asset/*.png
 
+Report.md
+
 venv

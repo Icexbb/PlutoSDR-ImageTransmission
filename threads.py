@@ -2,11 +2,11 @@ import math
 
 from PySide6 import QtCore
 
-from lib.llc.llc_nodeA import NodeALLC
-from lib.llc.llc_nodeB import NodeBLLC
-from lib.ofdm.ofdm_rx import OfdmRx
-from lib.ofdm.ofdm_tx import OfdmTx
-from lib.test_read_save_img import read_image, save_image
+from llc.llc_nodeA import NodeALLC
+from llc.llc_nodeB import NodeBLLC
+from ofdm.ofdm_rx import OfdmRx
+from ofdm.ofdm_tx import OfdmTx
+from img_operate import read_image, save_image
 
 PKT_SIZE = 100 * 48 - 64 - 32
 PHY_TYPE = "pluto"
@@ -61,7 +61,7 @@ class ReceiveThread(QtCore.QThread):
         self.llc = llc_rx
 
     def run(self) -> None:
-        rx_pkt = self.llc.recv(PKT_SIZE, self.frameCount, PHY_TYPE, is_dbl_link=True, arq_mode=ARQ_MODE)
+        rx_pkt: list[int] = self.llc.recv(PKT_SIZE, self.frameCount, PHY_TYPE, is_dbl_link=True, arq_mode=ARQ_MODE)
         save_image(rx_pkt, self.filepath)
 
 
